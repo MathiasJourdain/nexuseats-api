@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CuisineType {
+  ITALIAN
+  JAPANESE
+  FRENCH
+  BURGER
+  STREET_FOOD
+}
+
+model Restaurant {
+  id        Int         @id @default(autoincrement())
+  name      String
+  cuisine   CuisineType
+  address   String
+  rating    Float       @default(0)
+  isOpen    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  // Relation avec User (Propriétaire)
+  ownerId   Int         // ID de l'utilisateur propriétaire
+  owner     User        @relation(fields: [ownerId], references: [id]) // Lien vers le modèle User
+
+  menus     Menu[]
+
+  @@index([cuisine])
+  @@index([rating])
+  @@map("restaurants")
+}
+
+model Menu {
+  id           Int        @id @default(autoincrement())
+  name         String
+  description  String?
+  restaurantId Int
+  
+  // Relation 1:N avec suppression en cascade
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id         Int        @id @default(autoincrement())
+  name       String
+  price      Decimal    @db.Decimal(10, 2)
+  available  Boolean    @default(true)
+  menuId     Int
+  
+  // Relation 1:N avec suppression en cascade
+  menu       Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  categories Category[]
+
+  @@map("menu_items")
+}
+
+model Category {
+  id    Int        @id @default(autoincrement())
+  name  String     @unique
+  items MenuItem[]
+
+  @@map("categories")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      String   @default("customer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation inverse : un utilisateur possède plusieurs restaurants
+  restaurants Restaurant[]
+
+  @@map("users") 
+}

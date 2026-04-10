@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # 🐘 1. PostgreSQL (Base de données)
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexuseats_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexuseats
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: nexuseats_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexuseats -d nexuseats_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ⚡ 2. Redis (Cache & Rate Limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: nexuseats_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🐇 3. RabbitMQ (Microservices)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: nexuseats_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: nexuseats
+      RABBITMQ_DEFAULT_PASS: secret
+    ports:
+      - "5672:5672"   # Port AMQP
+      - "15672:15672" # Port de l'interface UI Management
+
+  # 🚀 4. Ton API NestJS (Cachée derrière Nginx)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexuseats_api
+    restart: unless-stopped
+    # ⚠️ Les ports sont supprimés ici ! L'API est isolée du web public.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://nexuseats:secretpassword@postgres:5432/nexuseats_db?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_URL=amqp://nexuseats:secret@rabbitmq:5672
+      - JWT_SECRET=super-secret-key-prod
+
+  # 🏆 5. BONUS : pgAdmin (Interface visuelle pour Postgres)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: nexuseats_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nexuseats.fr
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # 🛡️ 6. Nginx (Le Reverse Proxy et Vigile de Sécurité)
+  nginx:
+    image: nginx:alpine
+    container_name: nexuseats_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"    # Port HTTP (qui va rediriger vers HTTPS)
+      - "443:443"  # Port HTTPS (Sécurisé)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - api # Nginx attend que l'API soit prête avant de se lancer
+
+# 💾 Déclaration des volumes persistants
+volumes:
+  postgres-data:
+  redis-data:

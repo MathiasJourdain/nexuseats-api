@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/nexuseats-api/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/nexuseats-api/tsconfig.app.json",
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "classValidatorShim": true,
+          "introspectComments": true
+        }
+      }
+    ]
+  },
+  "monorepo": true,
+  "root": "apps/nexuseats-api",
+  "projects": {
+    "analytics-service": {
+      "type": "application",
+      "root": "apps/analytics-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/analytics-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/analytics-service/tsconfig.app.json"
+      }
+    },
+    "nexuseats-api": {
+      "type": "application",
+      "root": "apps/nexuseats-api",
+      "entryFile": "main",
+      "sourceRoot": "apps/nexuseats-api/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/nexuseats-api/tsconfig.app.json"
+      }
+    },
+    "notifications-service": {
+      "type": "application",
+      "root": "apps/notifications-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/notifications-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notifications-service/tsconfig.app.json"
+      }
+    },
+    "orders-service": {
+      "type": "application",
+      "root": "apps/orders-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/orders-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/orders-service/tsconfig.app.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+import { IsEmail, MinLength } from 'class-validator';
+
+export class RegisterDto {
+  @IsEmail({}, { message: 'Email invalide' })
+  email: string;
+
+  @MinLength(8, { message: 'Le mot de passe doit faire au moins 8 caractères' })
+  password: string;
+}
